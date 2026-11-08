@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CreditBridge — AI-underwritten credit, human-approved offers</title>
+<meta name="description" content="Claude reads the bank statements and proposes terms. A credit officer confirms every number. The borrower signs on a hosted page. No AI inside the app.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230F1419'/><path d='M9 16h14M16 9v14' stroke='%23fff' stroke-width='3' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600&display=swap" rel="stylesheet"></noscript>
+<style>
+:root{
+  --ink-900:#0F1419;--ink-600:#4B5563;--ink-400:#9CA3AF;--line-200:#E5E7EB;
+  --surface-0:#FFFFFF;--surface-1:#F9FAFB;--surface-2:#F3F4F6;
+  --claude:#7C5CFF;--claude-bg:#EFEBFF;--claude-text:#5B3FE6;
+  --action:#2563EB;--action-bg:#DBEAFE;
+  --ok:#16A34A;--ok-bg:#DCFCE7;--ok-text:#15803D;
+  --warn:#D97706;--warn-bg:#FEF3C7;--warn-text:#B45309;
+  --risk:#DC2626;--risk-bg:#FEE2E2;--risk-text:#B91C1C;
+  --teal:#0F766E;--teal-bg:#CCFBF1;
+  --shadow:0 1px 2px rgba(15,20,25,.06),0 0 0 1px var(--line-200);
+  --r-sm:6px;--r-md:10px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --script:"Caveat","Segoe Script","Bradley Hand",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ink-900:#F3F4F6;--ink-600:#B8BEC8;--ink-400:#6B7280;--line-200:#2A2F37;
+  --surface-0:#171A1F;--surface-1:#0F1115;--surface-2:#1E2228;
+  --claude-bg:#2A2452;--claude-text:#B9A6FF;--action-bg:#1E2F55;
+  --ok-bg:#153A24;--ok-text:#6EE7A0;--warn-bg:#3D2A0A;--warn-text:#FBBF24;
+  --risk-bg:#451A1A;--risk-text:#FCA5A5;--teal-bg:#0F3330;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 0 0 1px var(--line-200);
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--surface-1);color:var(--ink-900);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface-0)}
+.num{font-variant-numeric:tabular-nums lining-nums}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+code{font:12.5px var(--mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- shared chrome ---------- */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface-0);border-bottom:1px solid var(--line-200);height:54px;display:flex;align-items:center;gap:24px;padding:0 24px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;text-decoration:none;font-size:15px}
+.brand i{width:22px;height:22px;border-radius:6px;background:var(--ink-900);display:inline-grid;place-items:center}
+.brand i::before{content:"";width:10px;height:10px;border:2.5px solid var(--surface-0);border-radius:2px}
+.nav{display:flex;gap:2px}
+.nav a{text-decoration:none;color:var(--ink-600);padding:6px 10px;border-radius:var(--r-sm);font-weight:500}
+.nav a.on{color:var(--ink-900);background:var(--surface-2)}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-200);border-radius:999px;padding:5px 11px 5px 9px;background:var(--surface-0);font-weight:500;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-400);flex:none}
+.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.claude{background:var(--claude)}.dot.action{background:var(--action)}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 24px 120px}
+h1{font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:15px;font-weight:600;margin:0}
+h3{font-size:13px;font-weight:600;margin:0;color:var(--ink-600)}
+p{margin:0}
+.muted{color:var(--ink-600)}.faint{color:var(--ink-400)}
+.card{background:var(--surface-0);border-radius:var(--r-md);box-shadow:var(--shadow);padding:20px}
+.row{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-200);background:var(--surface-0);border-radius:var(--r-sm);padding:8px 14px;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--action);border-color:var(--action);color:#fff}
+.btn.primary:hover{filter:brightness(1.08);background:var(--action)}
+.btn.dark{background:var(--ink-900);border-color:var(--ink-900);color:var(--surface-0)}
+.btn.dark:hover{background:var(--ink-900);filter:brightness(1.15)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.btn.lg{padding:12px 20px;font-size:15px;border-radius:8px}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.chip.claude{background:var(--claude-bg);color:var(--claude-text)}
+.chip.edited{background:var(--warn-bg);color:var(--warn-text)}
+.chip.confirmed{background:var(--ok-bg);color:var(--ok-text)}
+.chip.neutral{background:var(--surface-2);color:var(--ink-600)}
+.chip.live{background:var(--action-bg);color:var(--action)}
+.chip.risk{background:var(--risk-bg);color:var(--risk-text)}
+.tier{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;font-weight:700;font-size:13px;color:#fff}
+.tier.A{background:#15803D}.tier.B{background:var(--teal)}.tier.C{background:#B45309}.tier.D{background:#B91C1C}
+.toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink-900);color:var(--surface-0);padding:9px 14px;border-radius:var(--r-sm);font-weight:500;opacity:0;transition:.2s;z-index:50;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.spark{display:inline-flex;align-items:flex-end;gap:2px;height:14px}
+.spark i{width:4px;background:var(--ink-400);border-radius:1px;display:block}
+
+/* ---------- landing ---------- */
+.land{max-width:1040px;margin:0 auto;padding:0 24px 80px}
+.lhero{padding:72px 0 48px;display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+.lhero h1{font-size:40px;line-height:1.1;letter-spacing:-.025em;margin:0 0 16px}
+.lhero .lead{font-size:17px;line-height:1.55;color:var(--ink-600);max-width:460px;margin-bottom:26px}
+.lhero .ctas{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.lhero .note{margin-top:14px;font-size:13px;color:var(--ink-400)}
+.flow{display:grid;gap:10px}
+.flow .node{background:var(--surface-0);border-radius:var(--r-md);box-shadow:var(--shadow);padding:14px 16px;position:relative}
+.flow .node .who{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.flow .arrow{text-align:center;color:var(--ink-400);font-size:16px;line-height:1;margin:-2px 0}
+.flow .bubble{background:var(--surface-2);border-radius:10px 10px 10px 2px;padding:10px 12px;font-size:13px;color:var(--ink-600)}
+.flow .mini{display:grid;grid-template-columns:1fr auto auto;gap:6px 12px;font-size:13px;align-items:center}
+.flow .mini .k{color:var(--ink-600)}
+.flow .mini .old{text-decoration:line-through;color:var(--ink-400)}
+.flow .sig{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.flow .sig .s{font:600 22px var(--script)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0 56px}
+.steps .st{background:var(--surface-0);border-radius:var(--r-md);box-shadow:var(--shadow);padding:22px}
+.steps .st .n{width:28px;height:28px;border-radius:50%;background:var(--ink-900);color:var(--surface-0);display:grid;place-items:center;font-weight:600;font-size:13px;margin-bottom:14px}
+.steps .st h2{font-size:16px;margin-bottom:6px}
+.steps .st p{color:var(--ink-600);line-height:1.55}
+.sect{margin:0 0 56px}
+.sect>h2{font-size:24px;letter-spacing:-.02em;margin:0 0 6px}
+.sect>.sub{color:var(--ink-600);font-size:15px;margin-bottom:22px;max-width:620px}
+.why{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.why .w{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:16px 18px;border:1px solid var(--line-200);border-radius:var(--r-md);background:var(--surface-0)}
+.why .w b{display:block;margin-bottom:3px}
+.why .w p{color:var(--ink-600);line-height:1.5}
+.why .w .ic{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:16px;background:var(--surface-2)}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.plan{background:var(--surface-0);border-radius:var(--r-md);box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column}
+.plan.hi{box-shadow:0 0 0 2px var(--ink-900)}
+.plan .name{font-weight:600;font-size:15px}
+.plan .price{font-size:28px;font-weight:600;letter-spacing:-.02em;margin:8px 0 2px}
+.plan .per{font-size:13px;color:var(--ink-600);margin-bottom:14px}
+.plan ul{margin:0 0 18px;padding-left:18px;color:var(--ink-600);line-height:1.7;flex:1}
+.landfoot{border-top:1px solid var(--line-200);padding:22px 0;color:var(--ink-400);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.noai{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;background:var(--claude-bg);color:var(--claude-text);border-radius:var(--r-md);margin-bottom:56px}
+.noai b{display:block;margin-bottom:2px}
+
+/* ---------- workspace: deals ---------- */
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.start{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:var(--surface-0);border-radius:var(--r-md);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.start>div{padding:18px 20px;border-right:1px solid var(--line-200);display:flex;flex-direction:column;gap:8px}
+.start>div:last-child{border-right:0}
+.start .t{display:flex;align-items:center;gap:10px;font-weight:600}
+.start .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--surface-2);color:var(--ink-600);flex:none}
+.start .done .n{background:var(--ok-bg);color:var(--ok-text)}
+.start .now .n{background:var(--ink-900);color:var(--surface-0)}
+.start p{color:var(--ink-600);flex:1}
+.start .done{opacity:.75}
+.filters{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}
+.filters button{border:1px solid var(--line-200);background:var(--surface-0);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500}
+.filters button.on{background:var(--ink-900);color:var(--surface-0);border-color:var(--ink-900)}
+table.deals{width:100%;border-collapse:collapse;background:var(--surface-0);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
+table.deals th{text-align:left;font-weight:500;color:var(--ink-600);font-size:12px;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line-200)}
+table.deals td{padding:10px 14px;border-bottom:1px solid var(--line-200);white-space:nowrap;vertical-align:middle}
+table.deals tr:last-child td{border-bottom:0}
+table.deals tbody tr{cursor:pointer}
+table.deals tbody tr:hover td{background:var(--surface-2)}
+table.deals td.nxt{white-space:normal;color:var(--ink-600);font-size:13px;min-width:200px}
+.tscroll{overflow-x:auto}
+.empty{text-align:center;padding:56px 24px}
+.empty .mark{font-size:28px;margin-bottom:8px;color:var(--claude)}
+.promptbox{text-align:left;max-width:600px;margin:18px auto 0;font-size:13px}
+.promptbox pre{white-space:pre-wrap;font:12.5px/1.55 var(--font);background:var(--surface-2);padding:12px 14px;border-radius:var(--r-sm);margin:10px 0 0;max-height:190px;overflow:auto;color:var(--ink-600)}
+
+/* ---------- workspace: deal review ---------- */
+.crumb{text-decoration:none;color:var(--ink-600);font-weight:500;font-size:13px}
+.dealhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:10px 0 16px;flex-wrap:wrap}
+.dealhead .meta{color:var(--ink-600);margin-top:4px}
+.status-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.status-strip .s{border-radius:var(--r-sm);padding:10px 14px;background:var(--surface-0);box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;color:var(--ink-400);font-size:13px}
+.status-strip .s b{display:block;font-size:13px;color:inherit}
+.status-strip .s small{display:block;font-size:12px;font-weight:400}
+.status-strip .s .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--surface-2);flex:none}
+.status-strip .s.done{color:var(--ink-600)}.status-strip .s.done .n{background:var(--ok-bg);color:var(--ok-text)}
+.status-strip .s.now{color:var(--ink-900);box-shadow:0 0 0 2px var(--ink-900)}.status-strip .s.now .n{background:var(--ink-900);color:var(--surface-0)}
+.next{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:var(--r-md);background:var(--action-bg);color:var(--ink-900);margin-bottom:18px}
+.next.warn{background:var(--warn-bg)}.next.risk{background:var(--risk-bg);color:var(--risk-text)}.next.ok{background:var(--ok-bg)}
+.next .ic{font-size:18px;flex:none}
+.next b{display:block}
+.next .sub{color:var(--ink-600);font-size:13px}
+.next.risk .sub{color:inherit}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+.card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px}
+.card .head .desc{color:var(--ink-600);font-size:13px;margin:2px 0 12px}
+.terms{display:grid;grid-template-columns:150px 1fr 1fr auto;gap:0 14px;align-items:center}
+.terms .th{font-size:12px;color:var(--ink-600);padding:8px 0;border-bottom:1px solid var(--line-200)}
+.terms .trow{display:contents}
+.terms .trow>div{padding:14px 0;border-bottom:1px solid var(--line-200)}
+.terms .trow:last-child>div{border-bottom:0}
+.terms .lbl{font-weight:500}
+.terms .lbl small{display:block;font-weight:400;color:var(--ink-600);font-size:12px}
+.terms .cv{color:var(--claude-text);font-weight:600}
+.terms .cv small{display:block;font-weight:400;color:var(--ink-600);font-size:12px;margin-top:2px;max-width:260px}
+.terms .cv small u{text-decoration-style:dotted}
+.terms .yv{font-weight:600;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.terms .yv .val{display:inline-flex;align-items:baseline;gap:4px}
+.terms .yv input{width:150px;border:1px solid var(--action);border-radius:var(--r-sm);padding:6px 8px;background:var(--surface-0);font-weight:600;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.terms .yv input:focus{outline:none}
+.terms .yv .note{font-weight:400;font-size:12px;color:var(--ink-600);max-width:220px}
+.terms .act{display:flex;gap:6px;justify-content:flex-end}
+.terms .act .btn.sm.ok{background:var(--ok-bg);border-color:transparent;color:var(--ok-text)}
+.terms .act .btn.sm.ok:hover{filter:brightness(.96)}
+.compare{margin-top:14px;padding:12px 14px;border-radius:var(--r-sm);background:var(--surface-2);display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;font-size:13px}
+.compare .b{height:8px;border-radius:4px;background:var(--line-200);position:relative;overflow:hidden}
+.compare .b i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.compare .b.req i{background:var(--ink-400)}.compare .b.cl i{background:var(--claude)}.compare .b.yo i{background:var(--ink-900)}
+.compare .k{color:var(--ink-600)}
+.conds li{list-style:none;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line-200)}
+.conds li:last-child{border-bottom:0}
+.conds ul{margin:0;padding:0}
+.conds input[type=checkbox]{width:17px;height:17px;margin-top:2px;accent-color:var(--ink-900)}
+.conds .t small{display:block;color:var(--ink-600);font-size:12px;margin-top:2px}
+.conds li.off .t{text-decoration:line-through;color:var(--ink-400)}
+.conds .act{display:flex;gap:6px;align-items:center}
+.side .card{margin-bottom:14px}
+.snap{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin-top:10px}
+.snap .k{font-size:12px;color:var(--ink-600)}
+.snap .v{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-top:2px;display:flex;align-items:center;gap:8px}
+.snap .q{font-size:12px;color:var(--ink-600);margin-top:2px;display:flex;align-items:center;gap:6px}
+.flags li,.ev li{list-style:none}
+.flags ul,.ev ul{margin:8px 0 0;padding:0}
+.flags li{padding:8px 10px;border-radius:var(--r-sm);background:var(--warn-bg);color:var(--warn-text);font-size:13px;margin-bottom:6px}
+.ev li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-200);font-size:13px}
+.ev li:last-child{border-bottom:0}
+.ev .src{color:var(--ink-400);font-size:12px;white-space:nowrap;text-decoration:underline dotted;cursor:help}
+.tl{margin:8px 0 0;padding:0;list-style:none}
+.tl li{display:grid;grid-template-columns:10px 1fr;gap:10px;padding:6px 0;font-size:13px;color:var(--ink-600)}
+.tl li .d{width:10px;height:10px;border-radius:50%;background:var(--line-200);margin-top:4px}
+.tl li.on .d{background:var(--ok)}
+.tl li.on{color:var(--ink-900)}
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--surface-0);border-top:1px solid var(--line-200);padding:12px 24px calc(12px + env(safe-area-inset-bottom,0px))}
+.actionbar .in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.actionbar .prog{flex:1;min-width:200px}
+.actionbar .prog b{display:block;font-size:13px}
+.actionbar .prog .bar{height:6px;border-radius:3px;background:var(--surface-2);margin-top:6px;overflow:hidden}
+.actionbar .prog .bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.actionbar .acts{display:flex;gap:8px;flex-wrap:wrap}
+.banner{display:flex;gap:10px;align-items:center;padding:11px 14px;border-radius:var(--r-md);background:var(--risk-bg);color:var(--risk-text);font-weight:500;margin-bottom:14px}
+.locked{pointer-events:none;opacity:.75}
+
+/* ---------- modal ---------- */
+.scrim{position:fixed;inset:0;background:rgba(15,20,25,.45);display:grid;place-items:center;z-index:40;padding:16px}
+.modal{background:var(--surface-0);border-radius:12px;width:min(560px,100%);box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.modal header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line-200);font-weight:600;font-size:15px}
+.modal .body{padding:20px}
+.modal .x{border:0;background:transparent;font-size:18px;color:var(--ink-600);padding:4px 8px;border-radius:6px}
+.stepn{font-weight:600;margin-bottom:8px}
+.urlbox{display:flex;align-items:center;gap:8px;border:1px solid var(--line-200);border-radius:var(--r-sm);padding:4px 4px 4px 12px;background:var(--surface-2)}
+.urlbox input{flex:1;border:0;background:transparent;font:13px var(--mono);min-width:0}
+.urlbox input:focus{outline:none}
+.help{color:var(--ink-600);font-size:13px;margin:10px 0 12px}
+.divider{height:1px;background:var(--line-200);margin:18px 0}
+.listen{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:var(--r-sm);background:var(--surface-2)}
+.spin{width:14px;height:14px;border:2px solid var(--line-200);border-top-color:var(--ink-600);border-radius:50%;animation:spin 1s linear infinite;margin-top:3px;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.okdot{width:12px;height:12px;border-radius:50%;background:var(--ok);margin-top:4px;flex:none;animation:spring .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes spring{from{transform:scale(0)}to{transform:scale(1)}}
+details.cfg summary{cursor:pointer;color:var(--ink-600);font-size:13px;margin-top:10px}
+details.cfg pre{font:12px var(--mono);background:var(--surface-2);padding:10px;border-radius:var(--r-sm);overflow-x:auto;margin:8px 0 0}
+.modal.small{width:min(440px,100%)}
+textarea{width:100%;border:1px solid var(--line-200);border-radius:var(--r-sm);padding:9px 11px;font:inherit;background:var(--surface-0);color:inherit;resize:vertical;min-height:72px}
+.modal footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--line-200)}
+
+/* ---------- auth forms ---------- */
+.fl{display:block;font-size:13px;font-weight:500;color:var(--ink-600);margin-bottom:12px}
+.fl input{display:block;width:100%;margin-top:5px;border:1px solid var(--line-200);border-radius:var(--r-sm);padding:9px 11px;background:var(--surface-0);color:var(--ink-900);font-size:14px;font-weight:400}
+.fl input:focus{outline:none;border-color:var(--action);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.aerr{background:var(--risk-bg);color:var(--risk-text);padding:9px 11px;border-radius:var(--r-sm);font-size:13px;margin-bottom:10px}
+
+/* ---------- audit ---------- */
+.audit{list-style:none;padding:0;margin:0}
+.audit li{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:11px 0;border-bottom:1px solid var(--line-200)}
+.audit li:last-child{border-bottom:0}
+.audit time{color:var(--ink-400);font-size:12px;font-family:var(--mono)}
+
+/* ---------- offer page ---------- */
+.offer{max-width:640px;margin:0 auto;padding:36px 20px 80px;font-size:16px}
+.offer .lender{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+.logo i{width:26px;height:26px;border-radius:50%;background:var(--ink-900);display:inline-block}
+.expires{text-align:right;font-size:13px;color:var(--ink-600)}
+.expires b{display:block;color:var(--ink-900);font-size:14px}
+.offer h1{font-size:28px;line-height:1.2;letter-spacing:-.015em;margin:0 0 6px}
+.offer .by{color:var(--ink-600);margin-bottom:28px}
+.hero{background:var(--ink-900);color:#F9FAFB;border-radius:14px;padding:26px 28px;margin-bottom:32px}
+.hero .l{font-size:13px;opacity:.7}
+.hero .big{font-size:40px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:4px 0 8px}
+.hero .t{font-size:14px;opacity:.85}
+.offer h2{font-size:17px;margin:0 0 12px}
+.ocard{background:var(--surface-0);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin-bottom:32px}
+.drawamt{font-size:34px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:4px}
+.drawamt input{border:0;border-bottom:2px solid var(--line-200);background:transparent;font:inherit;width:100%;max-width:280px;padding:0 0 2px}
+.drawamt input:focus{outline:none;border-color:var(--action)}
+input[type=range]{width:100%;margin:18px 0 6px;accent-color:var(--ink-900)}
+.rngl{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-400)}
+.quick{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.quick button{border:1px solid var(--line-200);background:var(--surface-0);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500}
+.quick button.on{background:var(--ink-900);color:var(--surface-0);border-color:var(--ink-900)}
+.hint{font-size:13px;color:var(--ink-600);margin-top:12px}
+.repay{display:grid;gap:0}
+.repay>div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line-200)}
+.repay>div:last-of-type{border-bottom:0}
+.repay b{font-weight:600}
+.repay .k{color:var(--ink-600)}
+details.amort summary{cursor:pointer;color:var(--ink-600);font-size:14px;margin-top:12px}
+details.amort table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+details.amort td,details.amort th{padding:5px 6px;text-align:right;border-bottom:1px solid var(--line-200)}
+details.amort th{color:var(--ink-600);font-weight:500}
+details.amort td:first-child,details.amort th:first-child{text-align:left}
+.conds ul{margin:0;padding-left:20px}
+.conds li{margin-bottom:6px}
+.conds .info{display:flex;gap:8px;font-size:14px;color:var(--ink-600);margin-top:10px}
+.sign label{display:block;font-size:13px;color:var(--ink-600);margin:14px 0 5px}
+.sign input[type=text]{width:100%;border:1px solid var(--line-200);border-radius:8px;padding:10px 12px;background:var(--surface-0)}
+.sign input[type=text]:focus{outline:none;border-color:var(--action);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.agree{display:flex;gap:10px;align-items:flex-start;margin:18px 0 4px;font-size:14px}
+.agree input{width:18px;height:18px;margin-top:2px;accent-color:var(--ink-900)}
+.agree a{color:var(--action)}
+.sigline{display:flex;align-items:center;gap:12px}
+.sigline .rendered{font:600 30px var(--script);color:var(--ink-900);min-width:120px;border-bottom:1px solid var(--line-200);padding:0 6px 2px;min-height:40px;transition:opacity .2s}
+.btn.accept{width:100%;justify-content:center;padding:13px;font-size:16px;margin-top:18px;border-radius:9px}
+.legal{font-size:13px;color:var(--ink-600);margin-top:10px}
+.ofoot{text-align:center;font-size:13px;color:var(--ink-600);margin-top:36px}
+.done{text-align:center;padding:60px 0}
+.done .check{width:56px;height:56px;border-radius:50%;background:var(--ok-bg);color:var(--ok-text);display:inline-grid;place-items:center;font-size:26px;margin-bottom:16px;animation:spring .35s cubic-bezier(.34,1.56,.64,1)}
+.done h1{margin-bottom:6px}
+.expired{padding:60px 0;text-align:center}
+.sheet{position:fixed;inset:0;background:rgba(15,20,25,.45);z-index:40;display:flex;justify-content:flex-end}
+.sheet .pane{width:min(520px,100%);background:var(--surface-0);height:100%;overflow:auto;padding:24px}
+.sheet .pane h3{margin:0 0 12px}
+.sheet .pane p{font-size:14px;color:var(--ink-600)}
+
+
+@media (max-width:860px){
+  .lhero{grid-template-columns:1fr;gap:28px;padding:40px 0 32px}.lhero h1{font-size:30px}
+  .steps,.plans{grid-template-columns:1fr}.why{grid-template-columns:1fr}
+  .start{grid-template-columns:1fr}.start>div{border-right:0;border-bottom:1px solid var(--line-200)}.start>div:last-child{border-bottom:0}
+  .grid{grid-template-columns:1fr}
+  .terms{grid-template-columns:1fr 1fr;gap:4px 14px}.terms .th{display:none}
+  .terms .trow>div{border-bottom:0;padding:4px 0}.terms .trow>.lbl{grid-column:1/3;padding-top:14px}
+  .terms .cv::before{content:"Claude proposed";display:block;font-size:11px;font-weight:500;color:var(--ink-400)}.terms .yv::before{content:"You approve";display:block;font-size:11px;font-weight:500;color:var(--ink-400)}
+  .terms .trow>.act{grid-column:1/3;justify-content:flex-start;padding-bottom:14px;border-bottom:1px solid var(--line-200)}
+  .status-strip{grid-template-columns:1fr}
+  .topbar{gap:12px;padding:0 14px}.wrap{padding:20px 14px 140px}.land{padding:0 16px 60px}
+  .audit li{grid-template-columns:1fr}
+  .nav a.hide-sm{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" role="status"></div>
+
+<script>
+/* =========================================================
+   Data & state. The server (Postgres/SQLite) is the source of truth.
+   ========================================================= */
+let S = { user:null, workspace:{name:"CreditBridge",officer:"",officerEmail:""}, claude:{linked:false}, deals:[], audit:[] };
+let authErr="";
+async function api(path, opts){
+  const r = await fetch(path, { headers:{"Content-Type":"application/json"}, ...opts });
+  if(!r.ok){ let m=r.statusText; try{ m=(await r.json()).detail||m; }catch(e){} throw new Error(m); }
+  return r.status===204 ? null : r.json();
+}
+async function load(){
+  const h = location.hash.replace(/^#\/?/,""); const [p,id]=h.split("/");
+  if(p==="offer" && id){
+    const o = await api("/api/offer/"+id);
+    S = { workspace:o.workspace, claude:{linked:false}, deals:o.deal?[o.deal]:[], audit:[] };
+  } else {
+    try{ S = await api("/api/state"); }
+    catch(e){ if(/not signed in|401/.test(e.message)){ S = { user:null, workspace:{name:"CreditBridge",officer:"",officerEmail:""}, claude:{linked:false}, deals:[], audit:[] }; } else throw e; }
+  }
+}
+function logout(){ return api("/api/auth/logout",{method:"POST"}).then(()=>{ S.user=null; location.hash="#/"; return load().then(route); }); }
+function save(d){ if(!d) return; api("/api/deals/"+d.id,{method:"PUT",body:JSON.stringify(d)}).catch(e=>{ toast("Save failed: "+e.message); load().then(route).catch(()=>{}); }); }
+function removeDeal(d, reason){ return api("/api/deals/"+d.id+"?reason="+encodeURIComponent(reason||""),{method:"DELETE"}); }
+function revokeClaude(){ return api("/api/claude/revoke",{method:"POST"}).then(load); }
+
+/* =========================================================
+   Helpers (en-IN)
+   ========================================================= */
+const inr = new Intl.NumberFormat("en-IN",{ style:"currency", currency:"INR", maximumFractionDigits:0 });
+const fmt = n => inr.format(Math.round(n));
+function abbr(n){
+  if(n>=1e7) return "₹"+(n/1e7).toFixed(n%1e7?2:0).replace(/\.?0+$/,"")+" Cr";
+  if(n>=1e5) return "₹"+(n/1e5).toFixed(n%1e5?1:0).replace(/\.0$/,"")+" L";
+  return fmt(n);
+}
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function now(){ const d=new Date(); return d.toLocaleDateString("en-IN",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false}); }
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
+function spark(a){ const m=Math.max(...a)||1; return `<span class="spark">${a.map(v=>`<i style="height:${Math.max(2,Math.round(v/m*14))}px"></i>`).join("")}</span>`; }
+const byId = id => S.deals.find(d=>d.id===id);
+const FIELD_LABEL = { limit:"credit limit", apr:"APR", term:"term", draw:"draw window" };
+const FIELD_UNIT = { limit:"", apr:"%", term:" months", draw:" months" };
+const showVal = (k,v) => k==="limit" ? fmt(v) : v+FIELD_UNIT[k];
+function unreviewed(d){ return Object.values(d.fields).filter(f=>f.prov==="claude").length + d.covenants.filter(c=>c.prov==="claude").length; }
+function totalFields(d){ return Object.keys(d.fields).length + d.covenants.length; }
+function audit(what,who){ S.audit.unshift({ at:now(), who:who||S.workspace.officer, what }); api("/api/audit",{method:"POST",body:JSON.stringify({what,who})}).catch(()=>{}); }
+function isExpired(d){ return d.status==="live" && d.offer.expires && d.offer.expires<Date.now(); }
+function statusOf(d){ if(d.status==="signed") return ["Signed","confirmed"]; if(isExpired(d)) return ["Expired","neutral"]; if(d.status==="live") return ["Live","live"]; return unreviewed(d)?["Needs review","claude"]:["Ready to publish","edited"]; }
+function nextStep(d){
+  if(d.status==="signed") return "Done. Download the executed facility.";
+  if(isExpired(d)) return "Offer expired before the borrower signed. Republish or decline.";
+  if(d.status==="live") return `Waiting for the borrower. Viewed ${d.offer.views||0} time${d.offer.views===1?"":"s"}.`;
+  if(d.tampered) return "Claude flagged an altered statement. Check the source or decline.";
+  const n=unreviewed(d); return n ? `Review ${n} proposed value${n>1?"s":""}, then publish.` : "All values reviewed. Publish the offer.";
+}
+const SAMPLE_PROMPT = `Underwrite this SME for a revolving credit line and push it to CreditBridge with upload_deal.
+
+Borrower: Northwind Logistics Pvt Ltd, Mumbai. Requested ₹80,00,000.
+Bank statement summary, last 6 months (HDFC current account):
+- Monthly credits: ₹42 L, ₹47 L, ₹51 L, ₹49 L, ₹58 L, ₹61 L (mostly NEFT from 4 FMCG clients; largest client ~38% of inflows)
+- Monthly debits: ₹39 L, ₹44 L, ₹46 L, ₹47 L, ₹52 L, ₹55 L (fuel, driver salaries, two vehicle EMIs of ₹1.9 L each)
+- Closing balance ranged ₹3.2 L to ₹11.4 L; one cheque return in month 2 (₹1.2 L, re-presented and cleared)
+- Existing debt service ≈ ₹3.8 L / month
+
+Decide limit, APR, term and draw window with a one-line rationale and a source reference (e.g. "Stmt 4, p.2") for each, propose 2–3 protective covenants in plain language, list evidence lines with page refs, and flag anything that worries you.`;
+
+/* =========================================================
+   Routing
+   ========================================================= */
+window.addEventListener("hashchange", ()=>load().then(route).catch(()=>route()));
+function route(){
+  const h = location.hash.replace(/^#\/?/,"");
+  const [p,id] = h.split("/");
+  const app = document.getElementById("app");
+  if(p==="offer" && id){ document.title="Your credit offer · "+S.workspace.name; app.innerHTML = renderOffer(id); bindOffer(id); window.scrollTo(0,0); return; }
+  if(!p || p==="home"){ document.title="CreditBridge — AI-underwritten credit, human-approved offers"; app.innerHTML = renderLanding(); bindLanding(); return; }
+  if(p==="login"||p==="signup"){ document.title=(p==="login"?"Log in":"Create a workspace")+" · CreditBridge"; app.innerHTML = renderAuth(p); bindAuth(p); window.scrollTo(0,0); return; }
+  if(!S.user){ sessionStorage_next = "#/"+h; location.replace("#/login"); return; }
+  document.title="CreditBridge";
+  let body;
+  if(p==="deals" && id) body = renderDeal(id);
+  else if(p==="audit") body = renderAudit();
+  else body = renderDeals();
+  app.innerHTML = renderChrome(p, body);
+  bindChrome(); if(p==="deals" && id) bindDeal(id);
+  window.scrollTo(0,0);
+}
+
+/* =========================================================
+   Login / signup
+   ========================================================= */
+let sessionStorage_next = "#/deals";
+function renderAuth(mode){
+  const login = mode==="login";
+  return `
+  <div class="topbar"><a class="brand" href="#/"><i></i>CreditBridge</a><span class="spacer"></span><a class="btn ghost" href="#/">How it works</a></div>
+  <div class="wrap" style="max-width:440px;padding-top:56px">
+    <div class="card" style="padding:28px">
+      <h1 style="margin-bottom:4px">${login?"Log in":"Create your workspace"}</h1>
+      <p class="muted" style="margin-bottom:20px">${login?"Your deals, audit log and Claude link are private to your account.":"Takes 20 seconds. You'll get your own deals, audit log and MCP link for Claude."}</p>
+      ${login?"":`<label class="fl">Your name<input id="aName" autocomplete="name" placeholder="Priya Raman"></label>
+      <label class="fl">Lender / workspace name<input id="aWs" autocomplete="organization" placeholder="Acme Capital"></label>`}
+      <label class="fl">Email<input id="aEmail" type="email" autocomplete="email" placeholder="you@lender.in"></label>
+      <label class="fl">Password<input id="aPw" type="password" autocomplete="${login?"current-password":"new-password"}" placeholder="${login?"":"At least 8 characters"}"></label>
+      <div id="aErr" class="aerr" style="display:${authErr?"block":"none"}">${esc(authErr)}</div>
+      <button class="btn primary lg" id="aGo" style="width:100%;justify-content:center;margin-top:6px">${login?"Log in":"Create workspace"}</button>
+      <p class="muted" style="text-align:center;margin-top:16px;font-size:13px">${login?`New here? <a href="#/signup">Create a workspace</a>`:`Already have an account? <a href="#/login">Log in</a>`}</p>
+    </div>
+    ${login?`<p class="faint" style="text-align:center;margin-top:14px;font-size:12.5px">Reviewing CreditBridge? Use the test login from the submission notes.</p>`:""}
+  </div>
+  <div id="modalRoot"></div>`;
+}
+function bindAuth(mode){
+  authErr="";
+  const go=document.getElementById("aGo"), err=document.getElementById("aErr");
+  const v=id=>(document.getElementById(id)?.value||"").trim();
+  async function submit(){
+    go.disabled=true; err.style.display="none";
+    try{
+      const body = mode==="login" ? {email:v("aEmail"),password:v("aPw")} : {email:v("aEmail"),password:v("aPw"),name:v("aName"),workspace:v("aWs")};
+      await api("/api/auth/"+mode,{method:"POST",body:JSON.stringify(body)});
+      await load(); const next=sessionStorage_next||"#/deals"; sessionStorage_next="#/deals"; location.hash=next; route();
+    }catch(e){ err.textContent=e.message; err.style.display="block"; go.disabled=false; }
+  }
+  go.onclick=submit;
+  document.querySelectorAll(".wrap input").forEach(i=>i.onkeydown=e=>{ if(e.key==="Enter") submit(); });
+  (document.getElementById("aName")||document.getElementById("aEmail")).focus();
+}
+
+/* =========================================================
+   Landing page — explains the product to someone new
+   ========================================================= */
+function renderLanding(){
+  const linked=S.claude.linked, n=S.deals.length, me=S.user;
+  const open = me ? `<a class="btn dark lg" href="#/deals">${n?`Open ${esc(me.workspace)} (${n} deal${n>1?"s":""})`:"Open your workspace"}</a>`
+                  : `<a class="btn dark lg" href="#/signup">Create a free workspace</a>`;
+  return `
+  <div class="topbar">
+    <a class="brand" href="#/"><i></i>CreditBridge</a>
+    <nav class="nav"><a href="#how" class="hide-sm">How it works</a><a href="#why" class="hide-sm">Why not just Claude</a><a href="#pricing" class="hide-sm">Pricing</a></nav>
+    <span class="spacer"></span>
+    ${me?`<a class="btn primary" href="#/deals">Open workspace</a>`:`<a class="btn ghost" href="#/login">Log in</a><a class="btn primary" href="#/signup">Get started</a>`}
+  </div>
+  <div class="land">
+    <section class="lhero">
+      <div>
+        <h1>Claude underwrites.<br>Your credit officer approves.<br>The borrower signs.</h1>
+        <p class="lead">CreditBridge turns an SME's bank statements into a signed credit facility. Claude reads the statements in your own Claude account and proposes the terms. A human confirms every number here. The borrower accepts on a hosted offer page.</p>
+        <div class="ctas">${open}${me?`<button class="btn lg" id="landConnect">${linked?"Claude is connected":"Connect Claude"}</button>`:`<a class="btn lg" href="#/login">Log in</a>`}</div>
+        <p class="note">Built for NBFCs and fintech lenders in India. No AI runs inside this app; your Claude plan does the thinking.</p>
+      </div>
+      <div class="flow" aria-hidden="true">
+        <div class="node"><div class="who"><span class="dot claude"></span>In Claude</div><div class="bubble">“Here are 6 months of statements for Northwind Logistics. They want ₹80 L. Underwrite it and push it to CreditBridge.”</div></div>
+        <div class="arrow">↓</div>
+        <div class="node"><div class="who"><span class="dot action"></span>In CreditBridge, your officer reviews</div>
+          <div class="mini"><span class="k">Credit limit</span><span class="old num">₹60 L</span><b class="num">₹52 L ✎</b><span class="k">APR</span><span></span><b class="num">18% ✓</b><span class="k">Term</span><span></span><b class="num">12 mo ✓</b></div></div>
+        <div class="arrow">↓</div>
+        <div class="node"><div class="who"><span class="dot ok"></span>On the borrower's phone</div><div class="sig"><span>Northwind, you're approved for <b class="num">₹52,00,000</b></span><span class="s">R. Mehta</span></div></div>
+      </div>
+    </section>
+
+    <section class="sect" id="how">
+      <h2>How it works</h2>
+      <p class="sub">Three steps. Claude does the reading and the reasoning; CreditBridge does everything that has to stay live after the chat ends.</p>
+      <div class="steps">
+        <div class="st"><div class="n">1</div><h2>Ask Claude to underwrite</h2><p>Share the borrower's bank statements with Claude and ask it to decide a limit, rate, term and covenants. Claude pushes the proposal into CreditBridge with one tool call.</p></div>
+        <div class="st"><div class="n">2</div><h2>Confirm or change every number</h2><p>Each value arrives marked as Claude's. Your credit officer confirms it or changes it, with a reason that goes in the audit log. Nothing can be published until every value has been reviewed by a person.</p></div>
+        <div class="st"><div class="n">3</div><h2>Borrower signs online</h2><p>Publish, send the link. The borrower chooses how much to draw, sees the weekly repayment, and signs electronically. Time, IP and the agreement are recorded.</p></div>
+      </div>
+    </section>
+
+    <section class="sect" id="why">
+      <h2>Why not just use Claude?</h2>
+      <p class="sub">Claude can write a credit memo. It can't do the parts a lender is accountable for.</p>
+      <div class="why">
+        <div class="w"><div class="ic">🖋</div><div><b>A page the borrower can sign</b><p>An offer link that stays live for 7 days, works on a phone, and records the signature, draw amount, timestamp and IP.</p></div></div>
+        <div class="w"><div class="ic">✓</div><div><b>Enforced human approval</b><p>The server refuses to publish while any value still carries Claude's mark. A person has to touch every number.</p></div></div>
+        <div class="w"><div class="ic">📒</div><div><b>An audit trail you can show a regulator</b><p>Claude's original values are kept beside the officer's edits and reasons. Nothing is overwritten, ever.</p></div></div>
+        <div class="w"><div class="ic">🔁</div><div><b>Claude can read the outcome back</b><p>Ask Claude "who signed Northwind?" and it reads the officer's decisions and the signature from CreditBridge.</p></div></div>
+      </div>
+    </section>
+
+    <div class="noai"><span style="font-size:18px">✦</span><div><b>No AI inside the app, by design</b>All reading and reasoning happens in the customer's own Claude account over MCP. CreditBridge stores, enforces, hosts and records. That keeps the running cost per customer close to zero and the decision trail clean.</div></div>
+
+    <section class="sect" id="pricing">
+      <h2>Pricing</h2>
+      <p class="sub">Pay per published offer. Claude usage is on your existing Claude plan.</p>
+      <div class="plans">
+        <div class="plan"><div class="name">Starter</div><div class="price">₹0</div><div class="per">up to 5 published offers a month</div><ul><li>1 credit officer</li><li>Hosted borrower offer pages</li><li>Audit log</li></ul><a class="btn" href="${me?"#/deals":"#/signup"}">Start free</a></div>
+        <div class="plan hi"><div class="name">Lender</div><div class="price">₹499</div><div class="per">per published offer</div><ul><li>Unlimited officers</li><li>Maker–checker approval</li><li>Executed agreement PDF</li><li>Aadhaar eSign</li></ul><a class="btn dark" href="${me?"#/deals":"#/signup"}">${me?"Open workspace":"Start with Lender"}</a></div>
+        <div class="plan"><div class="name">Enterprise</div><div class="price">Custom</div><div class="per">for NBFCs with their own credit policy</div><ul><li>Policy checks on every proposal</li><li>Core-banking and LOS integration</li><li>Dedicated hosting</li></ul><a class="btn" href="mailto:hello@creditbridge.in">Talk to us</a></div>
+      </div>
+    </section>
+
+    <footer class="landfoot"><span>CreditBridge</span><span>Electronic signatures under the IT Act, 2000</span></footer>
+  </div>
+  <div id="modalRoot"></div>`;
+}
+function bindLanding(){ const b=document.getElementById("landConnect"); if(b) b.onclick=openConnect; }
+
+/* =========================================================
+   Workspace chrome
+   ========================================================= */
+function renderChrome(p, body){
+  const c=S.claude;
+  const pill = c.linked
+    ? `<button class="pill" id="claudePill"><span class="dot ok"></span>Claude connected</button>`
+    : `<button class="pill" id="claudePill"><span class="dot risk"></span>Connect Claude</button>`;
+  return `
+  <div class="topbar">
+    <a class="brand" href="#/"><i></i>CreditBridge</a>
+    <nav class="nav"><a href="#/deals" class="${p==="deals"?"on":""}">Deals</a><a href="#/audit" class="${p==="audit"?"on":""}">Audit log</a><a href="#/" class="hide-sm">How it works</a></nav>
+    <span class="spacer"></span>
+    ${pill}
+    <div class="row" style="gap:8px"><span class="muted hide-sm" style="font-size:13px"><b style="color:var(--ink-900)">${esc(S.workspace.name)}</b> · ${esc(S.user.name)}</span><button class="btn sm ghost" id="logoutBtn">Log out</button></div>
+  </div>
+  <div class="wrap">${body}</div>
+  <div id="modalRoot"></div>`;
+}
+function bindChrome(){ document.getElementById("claudePill").onclick = openConnect; document.getElementById("logoutBtn").onclick = logout; }
+
+/* ---------- Deals list ---------- */
+let filter="all";
+function renderStart(){
+  const linked=S.claude.linked, has=S.deals.length>0, reviewed=S.deals.some(d=>d.status!=="draft"||unreviewed(d)<totalFields(d));
+  const cls=(done,now)=>done?"done":now?"now":"";
+  return `<div class="start">
+    <div class="${cls(linked,!linked)}"><div class="t"><span class="n">${linked?"✓":"1"}</span>Connect your Claude</div><p>${linked?`Connected from ${esc(S.claude.client||"Claude")}. Deals Claude uploads will appear below.`:"Paste one link into Claude's connector settings. Takes about 10 seconds."}</p>${linked?"":`<div><button class="btn primary" id="connectCta">Connect Claude</button></div>`}</div>
+    <div class="${cls(has,linked&&!has)}"><div class="t"><span class="n">${has?"✓":"2"}</span>Underwrite a borrower in Claude</div><p>${has?"Your first deal has arrived.":"Share bank statements with Claude and ask it to underwrite them, or use the sample prompt to try it with no files."}</p>${has||!linked?"":`<p class="faint" style="font-size:12px">Sample prompt is below.</p>`}</div>
+    <div class="${cls(reviewed,has&&!reviewed)}"><div class="t"><span class="n">${reviewed?"✓":"3"}</span>Review, publish, get it signed</div><p>Open the deal, confirm or change each value Claude proposed, publish, and send the link to the borrower.</p></div>
+  </div>`;
+}
+function renderDeals(){
+  const showStart = !S.claude.linked || S.deals.length<2;
+  const count = s => S.deals.filter(d=>({draft:d.status==="draft",live:d.status==="live"&&!isExpired(d),signed:d.status==="signed",expired:isExpired(d)})[s]).length;
+  const rows = S.deals.filter(d=>filter==="all"||(filter==="draft"&&d.status==="draft")||(filter==="live"&&d.status==="live"&&!isExpired(d))||(filter==="signed"&&d.status==="signed")||(filter==="expired"&&isExpired(d))).map(d=>{
+    const [label,cls]=statusOf(d); const f=d.fields.limit;
+    return `<tr data-id="${d.id}">
+      <td><span class="chip ${cls}">${label}</span></td>
+      <td><b>${esc(d.borrower)}</b><div class="faint" style="font-size:12px">${esc(d.city)}</div></td>
+      <td class="num">${abbr(d.requested)}</td>
+      <td class="num">${abbr(f.value)}${f.prov==="edited"?` <span class="faint">was ${abbr(f.claude)}</span>`:""}</td>
+      <td><span class="tier ${d.glance.tier}">${d.glance.tier}</span></td>
+      <td class="faint">${esc(d.ingested)}</td>
+      <td class="nxt">${nextStep(d)}</td>
+    </tr>`;}).join("");
+  const table = S.deals.length===0 ? "" : `
+  <div class="filters">
+    <button class="${filter==='all'?'on':''}" data-f="all">All ${S.deals.length}</button>
+    <button class="${filter==='draft'?'on':''}" data-f="draft">Needs review ${count('draft')}</button>
+    <button class="${filter==='live'?'on':''}" data-f="live">Live ${count('live')}</button>
+    <button class="${filter==='signed'?'on':''}" data-f="signed">Signed ${count('signed')}</button>
+    ${count('expired')?`<button class="${filter==='expired'?'on':''}" data-f="expired">Expired ${count('expired')}</button>`:""}
+  </div>
+  <div class="tscroll"><table class="deals">
+    <thead><tr><th>Status</th><th>Borrower</th><th>Requested</th><th>Proposed limit</th><th>Tier</th><th>Received</th><th>What's next</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No deals in this view.</td></tr>`}</tbody>
+  </table></div>`;
+  const empty = S.deals.length ? "" : (S.claude.linked
+    ? `<div class="card empty"><div class="mark" style="color:var(--ok-text)">✓</div><h1>Now send Claude a borrower</h1><p class="muted" style="max-width:480px;margin:6px auto 0">Open a Claude chat, attach bank statements (or paste the sample below), and ask it to underwrite and push to CreditBridge. The deal appears here within seconds.</p>
+        <div class="card promptbox"><div class="row" style="justify-content:space-between"><b>Sample prompt, no files needed</b><button class="btn sm" id="copyPrompt">Copy prompt</button></div><pre>${esc(SAMPLE_PROMPT)}</pre></div></div>`
+    : `<div class="card empty"><div class="mark">✦</div><h1>Nothing here yet</h1><p class="muted" style="max-width:420px;margin:6px auto 0">Connect your Claude using step 1 above. Every deal Claude underwrites will land here, ready for review.</p></div>`);
+  return `
+  <div class="pagehead"><div><h1>Deals</h1><p class="muted">Every deal below was proposed by Claude. Nothing goes to a borrower until a person has reviewed every value.</p></div></div>
+  ${showStart?renderStart():""}
+  ${empty}${table}`;
+}
+setInterval(()=>{ const h=location.hash.replace(/^#\/?/,"")||""; if(S.user && h==="deals" && !document.getElementById("modalRoot")?.innerHTML) load().then(route).catch(()=>{}); },5000);
+document.addEventListener("click", e=>{
+  const tr=e.target.closest("tr[data-id]"); if(tr){ location.hash="#/deals/"+tr.dataset.id; return; }
+  const fb=e.target.closest(".filters button"); if(fb){ filter=fb.dataset.f; route(); return; }
+  if(e.target.id==="connectCta") openConnect();
+  if(e.target.id==="copyPrompt"){ navigator.clipboard?.writeText(SAMPLE_PROMPT); e.target.textContent="Copied ✓"; setTimeout(()=>e.target.textContent="Copy prompt",2000); }
+});
+
+/* ---------- Deal review page ---------- */
+let editing=null; // field key currently being changed
+function renderDeal(id){
+  const d=byId(id); if(!d) return `<p>Deal not found. <a href="#/deals">Back to deals</a></p>`;
+  const g=d.glance, f=d.fields, o=d.offer;
+  const n=unreviewed(d), total=totalFields(d), locked=d.status==="signed", expired=isExpired(d);
+  const [sLabel,sCls]=statusOf(d);
+
+  // What to do next, in one sentence.
+  let next;
+  if(locked) next=`<div class="next ok"><span class="ic">🔒</span><div><b>Signed by ${esc(o.signer||"")} on ${esc(o.signed||"")}</b><span class="sub">Drew ${fmt(o.draw||0)}. Terms are locked; nothing here can be changed.</span></div></div>`;
+  else if(d.tampered) next=`<div class="next risk"><span class="ic">⚠</span><div><b>Claude thinks a statement was altered</b><span class="sub">Check the source statements before you do anything else. Publishing is blocked until this is resolved; decline if the borrower can't explain it.</span></div></div>`;
+  else if(expired) next=`<div class="next warn"><span class="ic">⏱</span><div><b>The offer expired before the borrower signed</b><span class="sub">Republish to give them another 7 days, or decline the deal.</span></div></div>`;
+  else if(d.status==="live") next=`<div class="next"><span class="ic">🔗</span><div><b>Offer is live. Send the link to the borrower.</b><span class="sub">Viewed ${o.views||0} time${o.views===1?"":"s"}${o.lastView&&o.lastView!=="—"?`, last on ${esc(o.lastView)}`:""}. Expires ${new Date(o.expires).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}.</span></div></div>`;
+  else if(n) next=`<div class="next"><span class="ic">✦</span><div><b>${n} of ${total} proposed values still need your review</b><span class="sub">For each row, confirm Claude's number or change it. Changes over 10% ask for a reason, which goes in the audit log.</span></div></div>`;
+  else next=`<div class="next ok"><span class="ic">✓</span><div><b>Every value has been reviewed by a person</b><span class="sub">Publish to create the borrower's offer page. It stays live for 7 days.</span></div></div>`;
+
+  const who = x => x.prov==="claude" ? `<span class="chip claude">✦ Proposed by Claude</span>` : `<span class="chip ${x.prov}">${x.prov==="edited"?"✎ Changed":"✓ Confirmed"} by ${esc(x.by||"")}</span>`;
+  const termRow = (k,label,hint) => {
+    const x=f[k]; const isEd=editing===k;
+    const yours = isEd
+      ? `<input id="edit-${k}" class="num" value="${k==="limit"?Math.round(x.value):x.value}" inputmode="numeric" aria-label="Your ${label}">`
+      : `<span class="val num">${showVal(k,x.value)}</span>`;
+    const act = locked ? "" : isEd
+      ? `<button class="btn sm primary" data-save="${k}">Save</button><button class="btn sm ghost" data-cancel="${k}">Cancel</button>`
+      : x.prov==="claude"
+        ? `<button class="btn sm ok" data-confirm="${k}">Confirm</button><button class="btn sm" data-edit="${k}">Change</button>`
+        : `<button class="btn sm ghost" data-edit="${k}">Change</button>`;
+    return `<div class="trow">
+      <div class="lbl">${label}<small>${hint}</small></div>
+      <div class="cv num">${showVal(k,x.claude)}${x.rationale?`<small>${esc(x.rationale)}${x.src?` <u title="Source Claude cited">${esc(x.src)}</u>`:""}</small>`:""}</div>
+      <div class="yv">${yours}${who(x)}${x.note?`<span class="note">“${esc(x.note)}”</span>`:""}</div>
+      <div class="act">${act}</div>
+    </div>`; };
+
+  const cap=Math.max(d.requested,f.limit.claude,f.limit.value)||1; const pct=v=>Math.min(100,v/cap*100).toFixed(1)+"%";
+
+  return `
+  <a class="crumb" href="#/deals">← All deals</a>
+  <div class="dealhead">
+    <div><h1>${esc(d.borrower)}</h1><p class="meta">${esc(d.city)} · asked for <b class="num">${abbr(d.requested)}</b> · Claude read ${d.stmts} statements on ${esc(d.ingested)}</p></div>
+    <span class="chip ${sCls}" style="height:28px;font-size:13px;padding:0 12px">${sLabel}</span>
+  </div>
+  <div class="status-strip">
+    <div class="s ${d.status!=="draft"?"done":"now"}"><span class="n">${d.status!=="draft"?"✓":"1"}</span><div><b>Review Claude's proposal</b><small>${d.status==="draft"?`${total-n} of ${total} reviewed`:"Done"}</small></div></div>
+    <div class="s ${d.status==="signed"?"done":d.status==="live"?"now":""}"><span class="n">${d.status==="signed"?"✓":"2"}</span><div><b>Offer live for the borrower</b><small>${d.status==="live"?(expired?"Expired":`Viewed ${o.views||0}×`):d.status==="signed"?"Done":"Not yet"}</small></div></div>
+    <div class="s ${d.status==="signed"?"done now":""}"><span class="n">${d.status==="signed"?"✓":"3"}</span><div><b>Signed</b><small>${d.status==="signed"?esc(o.signed):"Not yet"}</small></div></div>
+  </div>
+  ${next}
+
+  <div class="grid">
+    <div class="main">
+      <div class="card ${locked?"locked":""}" style="margin-bottom:16px">
+        <div class="head"><h2>Terms</h2></div>
+        <p class="desc">Left: what Claude proposed and why. Right: what you're approving.</p>
+        <div class="terms">
+          <div class="th">Term</div><div class="th">Claude proposed</div><div class="th">You approve</div><div class="th"></div>
+          ${termRow("limit","Credit limit",`Borrower asked for ${abbr(d.requested)}`)}
+          ${termRow("apr","Interest rate","Per year, on drawn amount")}
+          ${termRow("term","Term","Repaid weekly by NACH")}
+          ${termRow("draw","Draw window","Months the borrower can draw")}
+        </div>
+        <div class="compare num">
+          <span class="k">Requested</span><div class="b req"><i style="width:${pct(d.requested)}"></i></div><b>${abbr(d.requested)}</b>
+          <span class="k" style="color:var(--claude-text)">Claude</span><div class="b cl"><i style="width:${pct(f.limit.claude)}"></i></div><b style="color:var(--claude-text)">${abbr(f.limit.claude)}</b>
+          <span class="k">You</span><div class="b yo"><i style="width:${pct(f.limit.value)}"></i></div><b>${abbr(f.limit.value)}</b>
+        </div>
+      </div>
+
+      <div class="card conds ${locked?"locked":""}">
+        <div class="head"><h2>Conditions the borrower must keep</h2>${locked?"":`<button class="btn sm" id="addCov">+ Add a condition</button>`}</div>
+        <p class="desc">Shown on the offer page in plain language. If one is breached, new draws pause.</p>
+        <ul>${d.covenants.map(c=>`<li class="${c.on?"":"off"}">
+          <input type="checkbox" data-cov="${c.id}" ${c.on?"checked":""} ${locked?"disabled":""} aria-label="Include this condition">
+          <div class="t">${esc(c.text)}<small>Borrower sees: “${esc(c.borrower||c.text)}”${c.breach?` · on breach: ${esc(c.breach)}`:""}${c.note?` · “${esc(c.note)}”`:""}</small></div>
+          <div class="act">${c.prov==="claude"?`<span class="chip claude">✦ Claude</span>${locked?"":`<button class="btn sm ok" data-confirmcov="${c.id}">Confirm</button>`}`:c.prov==="edited"?`<span class="chip edited">✎ Changed</span>`:`<span class="chip confirmed">✓ Confirmed</span>`}</div>
+        </li>`).join("")||`<li><span></span><div class="t muted">No conditions. Add one if the risk calls for it.</div><span></span></li>`}</ul>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card"><h2>Borrower snapshot</h2><p class="desc muted" style="font-size:12px;margin-top:2px">From the statements Claude read</p>
+        <div class="snap">
+          <div><div class="k">Monthly revenue</div><div class="v num">${abbr(g.revenue)}</div><div class="q">${spark(g.spark)} ${esc(g.revQoQ||"")}</div></div>
+          <div><div class="k">Debt service cover</div><div class="v num">${g.dscr.toFixed(1)}×</div><div class="q">${g.dscr>=1.5?'<span style="color:var(--ok-text)">Comfortable (≥1.5×)</span>':'<span style="color:var(--warn-text)">Thin (below 1.5×)</span>'}</div></div>
+          <div><div class="k">Cash volatility</div><div class="v num">${g.vol}%</div><div class="q">${g.vol<20?"Low":g.vol<35?"Moderate":"High"}</div></div>
+          <div><div class="k">Risk tier</div><div class="v"><span class="tier ${g.tier}">${g.tier}</span></div><div class="q">Claude's confidence: ${esc(g.confidence)}</div></div>
+        </div>
+      </div>
+      ${d.flagged.length?`<div class="card flags"><h2>Things Claude flagged</h2><ul>${d.flagged.map(x=>`<li>⚠ ${esc(x)}</li>`).join("")}</ul></div>`:""}
+      <div class="card ev"><div class="head"><h2>Evidence</h2><button class="btn sm ghost" id="viewSrc">Open statements</button></div>
+        <ul>${d.evidence.map(e=>`<li><span>${esc(e.t)}</span><span class="src" title="Page Claude cited">${esc(e.src)}</span></li>`).join("")||`<li class="muted">Claude didn't attach evidence lines.</li>`}</ul></div>
+      <div class="card"><h2>History</h2><ul class="tl">
+        <li class="on"><span class="d"></span><span>Claude proposed terms · ${esc(d.ingested)}</span></li>
+        <li class="${n===0?"on":""}"><span class="d"></span><span>${n===0?"All values reviewed by "+esc(S.workspace.officer):`${total-n} of ${total} values reviewed`}</span></li>
+        <li class="${o.published?"on":""}"><span class="d"></span><span>${o.published?"Offer published · "+esc(o.publishedAt||""):"Offer not published"}</span></li>
+        <li class="${o.signed?"on":""}"><span class="d"></span><span>${o.signed?`Signed by ${esc(o.signer||"")} · ${esc(o.signed)} · IP ${esc(o.ip||"")}`:"Not signed"}</span></li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="actionbar"><div class="in">
+    <div class="prog"><b>${locked?"Facility signed and locked":d.status==="live"?(expired?"Offer expired":"Offer live, waiting for signature"):n?`${total-n} of ${total} values reviewed`:"Ready to publish"}</b><div class="bar"><i style="width:${locked?100:d.status==="live"?100:(total-n)/total*100}%"></i></div></div>
+    <div class="acts">
+      ${locked?`<button class="btn" id="amend">Amend facility</button><button class="btn dark" id="dlPdf">Download executed facility</button>`
+       :d.status==="live"?(expired?`<button class="btn ghost" id="decline">Decline deal</button><button class="btn primary" id="republish">Republish for 7 days</button>`
+                                  :`<button class="btn ghost" id="unpublish">Unpublish</button><a class="btn" href="#/offer/${d.id}" target="_blank">Preview offer</a><button class="btn primary" id="copyLink">Copy borrower link</button>`)
+       :`<button class="btn ghost" id="decline">Decline deal</button>${n?`<button class="btn" id="confirmAll" title="Mark every remaining Claude value as confirmed">Confirm all ${n} remaining</button>`:""}<button class="btn primary" id="publishBtn" ${n||d.tampered?"disabled":""} title="${d.tampered?"Blocked: Claude flagged a possibly altered statement":n?`Review the remaining ${n} value${n>1?"s":""} first`:"Create the borrower's offer page"}">Publish offer</button>`}
+    </div>
+  </div></div>`;
+}
+
+function bindDeal(id){
+  const d=byId(id); if(!d) return;
+  const locked=d.status==="signed";
+  const parse = s => Number(String(s).replace(/[^\d.]/g,""))||0;
+  const F=d.fields;
+
+  async function commit(key, v){
+    const f=F[key];
+    if(v<=0){ toast("Enter a value above zero"); return; }
+    if(v===f.value){ editing=null; route(); return; }
+    const big = f.claude && Math.abs(v-f.claude)/f.claude>0.10;
+    let note=f.note;
+    if(big){ note = await askReason(`That's ${(Math.abs(v-f.claude)/f.claude*100).toFixed(0)}% away from Claude's ${showVal(key,f.claude)}. Give a reason for the audit log.`); if(note===null){ return; } }
+    const old=f.value; f.value=v; f.prov = v===f.claude ? "confirmed" : "edited"; f.by=S.workspace.officer; f.at=now(); if(note) f.note=note;
+    audit(`Changed ${FIELD_LABEL[key]} on ${d.borrower}: ${showVal(key,old)} → ${showVal(key,v)}${note?` · “${note}”`:""}`);
+    editing=null; save(d); route(); toast("Saved");
+  }
+  function confirmField(key){ const f=F[key]; f.prov="confirmed"; f.by=S.workspace.officer; f.at=now(); audit(`Confirmed Claude's ${FIELD_LABEL[key]} (${showVal(key,f.value)}) on ${d.borrower}`); save(d); route(); toast("Confirmed"); }
+
+  document.querySelectorAll("[data-confirm]").forEach(b=>b.onclick=()=>confirmField(b.dataset.confirm));
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ editing=b.dataset.edit; route(); const i=document.getElementById("edit-"+editing); if(i){ i.focus(); i.select(); } });
+  document.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>{ editing=null; route(); });
+  document.querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>{ const k=b.dataset.save; commit(k, parse(document.getElementById("edit-"+k).value)); });
+  if(editing){ const i=document.getElementById("edit-"+editing); if(i){ i.onkeydown=e=>{ if(e.key==="Enter") commit(editing, parse(i.value)); if(e.key==="Escape"){ editing=null; route(); } }; } }
+
+  document.querySelectorAll("[data-confirmcov]").forEach(b=>b.onclick=()=>{ const c=d.covenants.find(x=>x.id===b.dataset.confirmcov); c.prov="confirmed"; audit(`Confirmed condition “${c.text}” on ${d.borrower}`); save(d); route(); toast("Confirmed"); });
+  document.querySelectorAll("input[data-cov]").forEach(cb=>cb.onchange=async()=>{
+    const c=d.covenants.find(x=>x.id===cb.dataset.cov);
+    if(c.prov==="claude" && c.on && !cb.checked){ const r=await askReason("You're removing a condition Claude recommended. Give a reason for the audit log."); if(r===null){ route(); return; } c.note=r; }
+    c.on=cb.checked; c.prov="edited"; audit(`${cb.checked?"Included":"Removed"} condition “${c.text}” on ${d.borrower}${c.note?` · “${c.note}”`:""}`); save(d); route();
+  });
+  const ac=document.getElementById("addCov"); if(ac) ac.onclick=async()=>{ const t=await askReason("Write the condition as the borrower should read it.","e.g. Keep at least ₹5 L in the account"); if(!t) return; d.covenants.push({id:"c"+Date.now(),on:true,prov:"edited",text:t,borrower:t,breach:"draw freeze"}); audit(`Added condition “${t}” on ${d.borrower}`); save(d); route(); };
+
+  const confirmAll=document.getElementById("confirmAll");
+  const doConfirm=()=>{ let k=0; Object.values(F).forEach(f=>{ if(f.prov==="claude"){f.prov="confirmed";f.by=S.workspace.officer;f.at=now();k++;} }); d.covenants.forEach(c=>{ if(c.prov==="claude"){c.prov="confirmed";k++;} }); audit(`Confirmed all remaining Claude values on ${d.borrower} (${k})`); save(d); route(); toast("All confirmed"); };
+  if(confirmAll) confirmAll.onclick=doConfirm;
+  document.onkeydown=e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter"&&unreviewed(d)&&!locked&&!editing){ e.preventDefault(); doConfirm(); } };
+
+  const pub=document.getElementById("publishBtn");
+  if(pub) pub.onclick=()=>{ d.status="live"; d.offer.published=true; d.offer.publishedAt=now(); d.offer.expires=Date.now()+7*864e5; d.offer.views=0; d.offer.lastView="—"; audit(`Published offer for ${d.borrower}`); save(d); route(); toast("Published. Copy the borrower link below."); };
+  const cl=document.getElementById("copyLink"); if(cl) cl.onclick=()=>{ const u=location.href.split("#")[0]+"#/offer/"+d.id; navigator.clipboard?.writeText(u); cl.textContent="Copied ✓"; setTimeout(()=>cl.textContent="Copy borrower link",2000); };
+  const un=document.getElementById("unpublish"); if(un) un.onclick=()=>{ if(!confirm("Unpublish this offer? The borrower's link will stop working.")) return; d.status="draft"; d.offer.published=false; audit(`Unpublished offer for ${d.borrower}`); save(d); route(); toast("Unpublished"); };
+  const rp=document.getElementById("republish"); if(rp) rp.onclick=()=>{ d.offer.expires=Date.now()+7*864e5; d.offer.publishedAt=now(); audit(`Republished offer for ${d.borrower} (7 days)`); save(d); route(); toast("Republished"); };
+  const dc=document.getElementById("decline"); if(dc) dc.onclick=async()=>{ const r=await askReason(`Decline ${d.borrower}? The deal is removed and your reason is kept in the audit log.`); if(r===null) return; try{ await removeDeal(d, r); toast("Declined"); location.hash="#/deals"; await load(); route(); }catch(e){ toast("Could not decline: "+e.message); } };
+  const am=document.getElementById("amend"); if(am) am.onclick=()=>toast("Coming in v1: amendments create a new facility version");
+  const dl=document.getElementById("dlPdf"); if(dl) dl.onclick=()=>toast("Coming in v1: executed facility PDF");
+  const vs=document.getElementById("viewSrc"); if(vs) vs.onclick=()=>toast("Coming in v1: source statements open beside the evidence");
+}
+
+function askReason(msg, ph){
+  return new Promise(res=>{
+    const root=document.getElementById("modalRoot");
+    root.innerHTML=`<div class="scrim"><div class="modal small"><header>${ph?"Add a condition":"Reason required"}<button class="x" id="mx">✕</button></header><div class="body"><p class="muted" style="margin:0 0 10px">${esc(msg)}</p><textarea id="reason" placeholder="${esc(ph||'At least 12 characters')}"></textarea></div><footer><button class="btn" id="mc">Cancel</button><button class="btn primary" id="mo" disabled>Save</button></footer></div></div>`;
+    const ta=root.querySelector("#reason"), ok=root.querySelector("#mo");
+    ta.focus(); ta.oninput=()=>ok.disabled=ta.value.trim().length<(ph?3:12);
+    ta.onkeydown=e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter"&&!ok.disabled) ok.click(); };
+    const close=v=>{ root.innerHTML=""; res(v); };
+    root.querySelector("#mx").onclick=()=>close(null); root.querySelector("#mc").onclick=()=>close(null); ok.onclick=()=>close(ta.value.trim());
+  });
+}
+
+/* ---------- Connect Claude modal ---------- */
+function openConnect(){
+  const root=document.getElementById("modalRoot");
+  const url=S.claude.mcpUrl || `${location.origin}/mcp`;
+  const cfg=`{\n  "mcpServers": {\n    "creditbridge": {\n      "type": "http",\n      "url": "${url}"\n    }\n  }\n}`;
+  const linked=S.claude.linked;
+  root.innerHTML=`<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-labelledby="mt">
+    <header><span id="mt">${linked?"Claude is connected":"Connect Claude"}</span><button class="x" id="mx" aria-label="Close">✕</button></header>
+    <div class="body">
+      <div class="stepn">1 · Copy this link</div>
+      <div class="urlbox"><input id="mcpUrl" readonly value="${url}"><button class="btn sm" id="copyUrl">Copy</button></div>
+      <div class="help">In Claude: Settings → Connectors → Add custom connector → paste the link → Add. This link is private to your workspace; anyone who has it can push deals here, so treat it like a password.</div>
+      <div class="row"><a class="btn" href="https://claude.ai/settings/connectors" target="_blank" rel="noopener">Open Claude's connector settings ↗</a></div>
+      <details class="cfg"><summary>Using Claude Desktop or Claude Code? Show the config JSON</summary><pre>${esc(cfg)}</pre></details>
+      <div class="divider"></div>
+      <div class="stepn">2 · We'll notice when Claude connects</div>
+      <div class="listen" id="listen">${linked
+        ? `<span class="okdot"></span><div><b>Claude is connected</b><div class="muted" style="font-size:13px">From ${esc(S.claude.client||"Claude")}. Claude can now call <span style="font-family:var(--mono);font-size:12px">upload_deal</span>, <span style="font-family:var(--mono);font-size:12px">list_deals</span> and <span style="font-family:var(--mono);font-size:12px">get_deal</span>.</div></div>`
+        : `<span class="spin"></span><div class="muted">Waiting for Claude… this page updates by itself once the connector is added.</div>`}</div>
+      <div class="faint" style="font-size:12px;margin-top:12px">${linked?`<a href="#" id="revoke">Disconnect Claude and reset the link</a>`:"The link is tied to this workspace and can be disconnected at any time."}</div>
+    </div>
+    <footer>${linked?`<button class="btn primary" id="mdone">Go to deals</button>`:`<button class="btn" id="mc">Close</button>`}</footer>
+  </div></div>`;
+  const close=()=>{ root.innerHTML=""; clearInterval(root._t); };
+  root.querySelector("#mx").onclick=close; const mc=root.querySelector("#mc"); if(mc) mc.onclick=close;
+  const md=root.querySelector("#mdone"); if(md) md.onclick=()=>{ close(); location.hash="#/deals"; route(); };
+  const rv=root.querySelector("#revoke"); if(rv) rv.onclick=e=>{ e.preventDefault(); if(!confirm("Disconnect Claude? The current link stops working; you'll get a new one to paste into Claude.")) return; revokeClaude().then(()=>{ close(); route(); toast("Disconnected. Copy the new link when you're ready."); }); };
+  root.querySelector("#scrim").onclick=e=>{ if(e.target.id==="scrim") close(); };
+  const inp=root.querySelector("#mcpUrl"); inp.focus(); inp.select();
+  const cp=root.querySelector("#copyUrl");
+  cp.onclick=()=>{ navigator.clipboard?.writeText(url); inp.select(); cp.textContent="Copied ✓"; setTimeout(()=>cp.textContent="Copy",2000); };
+  if(!linked){ root._t=setInterval(async()=>{ try{ await load(); }catch(e){ return; } if(S.claude.linked){ clearInterval(root._t); close(); route(); toast("Claude connected"); } },2500); }
+}
+
+/* ---------- Audit log ---------- */
+function renderAudit(){
+  return `<div class="pagehead"><div><h1>Audit log</h1><p class="muted">Every change to a term, every publish, every signature. Claude's original values are never deleted.</p></div></div>
+  <div class="card"><ul class="audit">${S.audit.map(a=>`<li><time>${esc(a.at)}</time><div><b>${esc(a.who)}</b> · ${esc(a.what)}</div></li>`).join("")||`<li><time></time><span class="muted">Nothing yet. The first entry appears when Claude uploads a deal.</span></li>`}</ul></div>`;
+}
+
+/* =========================================================
+   Borrower offer page (unchanged)
+   ========================================================= */
+function calc(P, apr, months){
+  const n=Math.round(months*52/12), i=apr/100/52;
+  const pay = i? P*i/(1-Math.pow(1+i,-n)) : P/n;
+  return { n, pay, total:pay*n, interest:pay*n-P, i };
+}
+function isExpired(d){ return d.status==="live" && d.offer.expires && d.offer.expires<Date.now(); }
+function countdown(ts){ const ms=ts-Date.now(); if(ms<=0) return null; const d=Math.floor(ms/864e5), h=Math.floor(ms%864e5/36e5); return `${d} day${d===1?"":"s"} · ${h}h`; }
+function firstPay(){ const d=new Date(); d.setDate(d.getDate()+((5-d.getDay()+7)%7||7)+7); return d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"}); }
+function fundDate(){ const d=new Date(); d.setDate(d.getDate()+((1-d.getDay()+7)%7||7)); return d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"}); }
+
+function renderOffer(id){
+  const d=byId(id);
+  const lender=`<div class="lender"><div class="logo"><i></i>${esc(S.workspace.name)}</div>`;
+  if(!d || !d.offer.published) return `<div class="offer">${lender}</div><div class="expired"><h1>This offer isn't available.</h1><p class="muted">The link may have been withdrawn. Contact ${esc(S.workspace.officer)} at ${esc(S.workspace.officerEmail)}.</p></div><div class="ofoot">🔒 Secured by CreditBridge</div></div>`;
+  const o=d.offer, f=d.fields;
+  if(o.signed) return `<div class="offer">${lender}</div>${renderDone(d)}</div>`;
+  const cd=countdown(o.expires);
+  if(!cd) return `<div class="offer">${lender}</div><div class="expired"><h1>This offer expired.</h1><p class="muted">Contact ${esc(S.workspace.officer)} to request a refreshed offer.</p></div></div>`;
+  const limit=f.limit.value, start=Math.min(limit, Math.round(limit*0.55/50000)*50000);
+  const borrowerShort=d.borrower.replace(/ (Pvt Ltd|LLP|Ltd)$/,"");
+  return `<div class="offer">
+    ${lender}<div class="expires">Offer expires in<b class="num">${cd}</b></div></div>
+    <h1>${esc(borrowerShort)}, you're approved.</h1>
+    <div class="by">A revolving credit line prepared by ${esc(S.workspace.officer)}, Credit Officer.</div>
+    <div class="hero"><div class="l">Approved credit line</div><div class="big num">${fmt(limit)}</div><div class="t num">${f.apr.value}% APR · ${f.term.value}-month term · draw anytime for ${f.draw.value} months</div></div>
+
+    <h2>How much would you like to draw today?</h2>
+    <div class="ocard">
+      <div class="drawamt num">₹<input id="drawIn" inputmode="numeric" value="${new Intl.NumberFormat('en-IN').format(start)}"></div>
+      <input type="range" id="drawRange" min="0" max="${limit}" step="50000" value="${start}" aria-label="Draw amount">
+      <div class="rngl num"><span>₹0</span><span>${fmt(limit)} max</span></div>
+      <div class="quick" id="quick">${[0.2,0.5,0.75,1].map(p=>{const v=Math.round(limit*p/50000)*50000; return `<button data-v="${v}">${p===1?"Full ":""}${abbr(v)}</button>`;}).join("")}</div>
+      <div class="hint" id="hint"></div>
+    </div>
+
+    <h2>What you'll repay</h2>
+    <div class="ocard">
+      <div class="repay num">
+        <div><span class="k">Weekly payment</span><b id="rPay"></b></div>
+        <div><span class="k">Total interest</span><b id="rInt"></b></div>
+        <div><span class="k">Total repaid</span><b id="rTot"></b></div>
+        <div><span class="k">First payment</span><b>${firstPay()} · NACH debit</b></div>
+        <div><span class="k">Pay off early</span><b>No fee</b></div>
+      </div>
+      <details class="amort"><summary>View amortization schedule</summary><div class="tscroll" id="amort"></div></details>
+    </div>
+
+    <h2>Conditions of this line</h2>
+    <div class="ocard conds">
+      <ul>${d.covenants.filter(c=>c.on).map(c=>`<li>${esc(c.borrower)}</li>`).join("")||"<li>No ongoing conditions.</li>"}</ul>
+      <div class="info">ⓘ <span>If a condition is breached, new draws pause; the terms on your existing balance don't change.</span></div>
+    </div>
+
+    <h2>Accept this facility</h2>
+    <div class="ocard sign">
+      <label for="sName">Full legal name</label><input type="text" id="sName" autocomplete="name">
+      <label for="sTitle">Title</label><input type="text" id="sTitle" placeholder="Director">
+      <div class="agree"><input type="checkbox" id="agree"><label for="agree" style="margin:0;color:inherit;font-size:14px">I've read the <a href="#" id="openAgr">Credit Facility Agreement</a> (14 pages, e-stamped) and agree to it on behalf of ${esc(d.borrower)}</label></div>
+      <label for="sSig">Type your name to sign</label>
+      <div class="sigline"><input type="text" id="sSig" autocomplete="off" style="flex:1"><div class="rendered" id="sigR" aria-hidden="true"></div></div>
+      <button class="btn dark accept" id="acceptBtn" disabled>Accept <span class="num" id="acceptAmt"></span> draw &amp; sign facility</button>
+      <div class="legal">By signing you agree to the terms above. We'll record the time, your IP address and a copy of this page.</div>
+    </div>
+    <div class="ofoot">Questions? Reply to ${esc(S.workspace.officerEmail)}<br>🔒 Secured by CreditBridge · Electronic signature under IT Act 2000 · Aadhaar eSign available</div>
+  </div>`;
+}
+function renderDone(d){
+  const o=d.offer, f=d.fields, c=calc(o.draw||0,f.apr.value,f.term.value);
+  return `<div class="done"><div class="check">✓</div><h1>Signed. Funds arrive ${fundDate()}.</h1>
+  <p class="muted num">${fmt(o.draw||0)} to account ••••4821 (HDFC) · Weekly ${fmt(c.pay)} starting ${firstPay()}</p>
+  <p class="faint" style="font-size:13px">Signed by ${esc(o.signer||"")} · ${esc(o.signed||"")}</p>
+  <div class="row" style="justify-content:center;gap:8px;margin-top:18px;flex-wrap:wrap"><button class="btn dark" onclick="toast('Coming in v1: signed agreement PDF')">Download signed agreement</button><button class="btn" onclick="toast('Coming in v1: calendar file')">Add payment dates to calendar</button></div></div>
+  <div class="ofoot">🔒 Secured by CreditBridge</div>`;
+}
+function bindOffer(id){
+  const d=byId(id); if(!d||!d.offer.published||d.offer.signed) return;
+  const f=d.fields, limit=f.limit.value;
+  const rng=document.getElementById("drawRange"), inp=document.getElementById("drawIn"); if(!rng) return;
+  const nf=new Intl.NumberFormat("en-IN");
+  let shown={pay:0,int:0,tot:0};
+  function tween(el,from,to){ const t0=performance.now(); const step=t=>{ const k=Math.min(1,(t-t0)/150); el.textContent=fmt(from+(to-from)*k); if(k<1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+  function update(v, src){
+    v=Math.max(0,Math.min(limit, Math.round(v/50000)*50000));
+    if(src!=="range") rng.value=v; if(src!=="input") inp.value=nf.format(v);
+    const c=calc(v,f.apr.value,f.term.value);
+    tween(document.getElementById("rPay"),shown.pay,c.pay); tween(document.getElementById("rInt"),shown.int,c.interest); tween(document.getElementById("rTot"),shown.tot,c.total);
+    shown={pay:c.pay,int:c.interest,tot:c.total};
+    document.getElementById("acceptAmt").textContent=fmt(v);
+    document.querySelectorAll("#quick button").forEach(b=>b.classList.toggle("on",Number(b.dataset.v)===v));
+    document.getElementById("hint").textContent = v<500000 ? "Many borrowers draw a smaller amount first and draw more later — there's no fee to draw again." : "";
+    let bal=v, rows=""; for(let k=1;k<=c.n;k++){ const int=bal*c.i, pr=c.pay-int; bal=Math.max(0,bal-pr); if(k<=6||k>c.n-2||k%13===0) rows+=`<tr><td>Week ${k}</td><td>${fmt(c.pay)}</td><td>${fmt(int)}</td><td>${fmt(pr)}</td><td>${fmt(bal)}</td></tr>`; else if(k===7) rows+=`<tr><td colspan="5" style="text-align:center;color:var(--ink-400)">…</td></tr>`; }
+    document.getElementById("amort").innerHTML=`<table><thead><tr><th>Payment</th><th>Amount</th><th>Interest</th><th>Principal</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table>`;
+    gate();
+  }
+  rng.oninput=()=>update(Number(rng.value),"range");
+  inp.oninput=()=>{ const v=Number(inp.value.replace(/[^\d]/g,""))||0; rng.value=Math.min(limit,v); const c=calc(Math.min(limit,v),f.apr.value,f.term.value); document.getElementById("acceptAmt").textContent=fmt(Math.min(limit,v)); };
+  inp.onblur=()=>update(Number(inp.value.replace(/[^\d]/g,""))||0,"blur");
+  inp.onkeydown=e=>{ if(e.key==="Enter") inp.blur(); };
+  document.getElementById("quick").onclick=e=>{ const b=e.target.closest("button"); if(b) update(Number(b.dataset.v)); };
+  const name=document.getElementById("sName"), sig=document.getElementById("sSig"), agree=document.getElementById("agree"), btn=document.getElementById("acceptBtn"), sigR=document.getElementById("sigR");
+  function gate(){ const ok=name.value.trim().length>2 && agree.checked && sig.value.trim().toLowerCase()===name.value.trim().toLowerCase() && Number(rng.value)>0; btn.disabled=!ok; }
+  [name,sig].forEach(x=>x.oninput=gate); agree.onchange=gate;
+  sig.onblur=()=>{ sigR.textContent=sig.value.trim(); gate(); }; sig.oninput=()=>{ sigR.textContent=sig.value.trim(); gate(); };
+  document.getElementById("openAgr").onclick=e=>{ e.preventDefault(); const s=document.createElement("div"); s.className="sheet"; s.innerHTML=`<div class="pane"><div class="row" style="justify-content:space-between"><h3>Credit Facility Agreement</h3><button class="btn sm" id="closeS">Close</button></div><p><b>1. Facility.</b> ${esc(S.workspace.name)} (“Lender”) makes available to ${esc(d.borrower)} (“Borrower”) a revolving credit facility of up to ${fmt(limit)}.</p><p><b>2. Interest.</b> ${f.apr.value}% per annum on drawn amounts, accruing daily, payable weekly by NACH mandate.</p><p><b>3. Term.</b> ${f.term.value} months from first draw; draws permitted for ${f.draw.value} months.</p><p><b>4. Conditions.</b> ${d.covenants.filter(c=>c.on).map(c=>c.borrower).join("; ")||"None"}. On breach, new draws pause.</p><p><b>5. Prepayment.</b> Permitted at any time without fee.</p><p><b>6. Electronic execution.</b> This agreement is executed electronically under the Information Technology Act, 2000.</p><p class="faint">Demo text — pages 2–14 omitted.</p></div>`; document.body.appendChild(s); s.onclick=e=>{ if(e.target===s||e.target.id==="closeS") s.remove(); }; };
+  btn.onclick=async()=>{
+    btn.disabled=true; btn.innerHTML=`<span class="spin" style="border-top-color:#fff;margin:0"></span> Signing…`;
+    try{
+      const r=await api("/api/offer/"+d.id+"/sign",{method:"POST",body:JSON.stringify({name:name.value.trim(),title:document.getElementById("sTitle").value.trim()||"Director",draw:Number(rng.value)})});
+      Object.assign(d, r.deal); route();
+    }catch(e){ toast("Could not sign: "+e.message); btn.disabled=false; btn.innerHTML="Accept and sign"; }
+  };
+  update(Number(rng.value));
+}
+
+load().then(route).catch(e=>{ document.getElementById("app").innerHTML=`<div class="wrap"><div class="card"><h1>Cannot reach the server</h1><p class="muted">${esc(e.message)}</p></div></div>`; });
+</script>
+</body>
+</html>
